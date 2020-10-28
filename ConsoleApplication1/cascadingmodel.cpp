@@ -4,6 +4,8 @@
 #include <random>
 #include "ConsoleApplication1h.h"
 #include <experimental/filesystem>
+#include <map>
+
 
 
 arma::Col<int> step(arma::Col<int>);
@@ -13,38 +15,93 @@ arma::Col<int> step(arma::Col<int> currentInfected);
 void create_res_hall(int community_sizes[], double community_spread_rates[], int numcommunity, int numMultiSpreaders, std::string path);
 arma::Mat<float> create_communities(arma::Mat<float> mat, int numcommunities, int avg_communitysize, float communitysize_variation, float communityweight, float communityweight_variation);
 arma::Mat<float> concat_diag_mat(std::experimental::filesystem::path path);
-
+arma::Mat<float> remove_nodes(arma::Mat<float> initial_mat, arma::Col<int> days_to_removal);
+void create_dir_graph(int all_community_sizes[][44], double all_community_spread_rates[][44], int numcommunities_per_community[], int numMultiSpreaders_per_community[], std::string res_hall_names[44], std::string path);
 
 int main()
 {
+	std::cout << "Covid-19 Cascade Simulation\n";
 
-	std::cout << "Covid-19 Cascade Simulation";
-	/*int community_sizes[3] = {16,4,2};
-	int community_sizes_2[4] = { 24,12,6,3 };
-	double community_spread_rates_2[4] = { 0.001, 0.02, 0.1, 0.8 };
-	double community_spread_rates[3] = { 0.00032, 0.01, 0.9 };
-	create_res_hall(community_sizes, community_spread_rates, 3, 0, "graphs/residence_hall_1.txt");
-	create_res_hall(community_sizes_2, community_spread_rates_2, 4, 0, "graphs/residence_hall_2.txt");
-	*/
-	concat_diag_mat(std::experimental::filesystem::path("graphs")).save("graphs/residence_hall_concat.txt", arma::raw_ascii);
+	std::map<std::string, int[]> gatech_apartments = { 
+		{"THB",{2,10,60}},
+		{"THD", {2,6,20,60}},
+		{"THE", {2,6,18,54}},
+		{"THF", {2,8,32,96}},
+		{"THG", {2,8,24}},
+		{"CSN", {4,32,160}},
+		{"CSS", {4,48,192}},
+		{"CRE", {4,72,360}},
+		{"ESE", {4,16,48,192}},
+		{"ESS", {4,16,48,192}},
+		{"ESW", {4,20,60,240}},
+		{"GLC", {4,36,72,360}},
+		{"MLD", {4,36,72,288}},
+		{"NSL", {4,28,112,448}},
+		{"NAE", {4,24,48,624}},
+		{"NAN", {4,64,576}},
+		{"NAS", {4,36,72,576}},
+		{"NAW", {5,45,180}},
+		{"ZBR", {4,28,56,224}}
+	};
+	std::map<std::string, int[]> gatech_suites = 
+	std::map<std::string, int[]> gatech_traditional = 
+	std::map<std::string, int[]]> greek_housing = 
+	
+
 }
 
-arma::Col<int> step(arma::Col<int> currentInfected)
+arma::Col<int> step(arma::Col<int> currentInfected, arma::Col<int> days_to_removal, int max_days_to_removal)
 {
 	arma::Mat<float> dir_graph;
 	dir_graph.load("processed-mat.txt", arma::arma_binary);
+	dir_graph = remove_nodes(dir_graph, days_to_removal);
 	currentInfected = arma::conv_to< arma::Col<int> >::from((dir_graph * currentInfected).eval()).row(0);
 	for (int i = 0; i < currentInfected.size(); i++)
 	{
-		if (currentInfected.at(i) != 0 && currentInfected.at(i) != 1)
+		if (currentInfected[i] != 0 && currentInfected[i] != 1)
 		{
-			currentInfected.at(i) = arma::randu<int>() < currentInfected.at(i) ? 1 : 0;
+			arma::arma_rng::set_seed_random();
+			if (arma::randu<float>() < currentInfected[i]) {
+				arma::arma_rng::set_seed_random();
+				currentInfected[i] = 1;
+				days_to_removal[i] = (int)(arma::randu<float>() * max_days_to_removal);
+			}
+			
 		}
 	}
 	return currentInfected;
 }
 
 
+
+
+
+/* Subtracts one day off each person who is infected until they have 0 days until removal at which point they are removed from the model
+   initial_mat is the initial undirected graph, days_to_removal is a column vector that will be modified
+*/
+arma::Mat<float> remove_nodes(arma::Mat<float> initial_mat, arma::Col<int> days_to_removal) 
+{
+	arma::Mat<int> transform (initial_mat.n_cols, initial_mat.n_cols, arma::fill::eye);
+	for (int i = 0; i < initial_mat.n_cols; i++) 
+	{
+		if (days_to_removal[i] > 1) 
+		{
+			days_to_removal[i] --;
+		}
+		else if (days_to_removal[i] == 1)
+		{
+			days_to_removal[i] = 0;
+			transform(i, i) = 0;
+		}
+	}
+	return transform * initial_mat * transform;
+}
+
+
+void create_dir_graph(int all_community_sizes[][44], double all_community_spread_rates[][44], int numcommunities_per_community[], int numMultiSpreaders_per_community[], std::string res_hall_names[44], std::string path)
+{
+
+}
 
 
 /*  Creates an nxn undirected graph where n is the size of the residence hall. Takes community_sizes, an array where the first entry is
